@@ -27,11 +27,11 @@
       },
       {
         "name": "style",
-        "path": "src/styles"
+        "path": "src/components"
       },
       {
         "name": "test",
-        "path": "test"
+        "path": "src/components"
       },
       {
         "name": "dist",

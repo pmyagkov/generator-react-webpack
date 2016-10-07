@@ -1,12 +1,12 @@
 import React from 'react';
 import { shallow } from 'enzyme';
-import <%= component.className %> from '<%= component.webpackPath %>';
+import * as styles from './<%= component.styleFileName %>';
 
-describe('<<%= component.className %> />', function () {
+describe('<<%= component.componentName %> />', function () {
 
   let component;
   beforeEach(function () {
-    component = shallow(<<%= component.className %> />);
+    component = shallow(<<%= component.componentName %> />);
   });
 
   describe('when rendering the component', function () {

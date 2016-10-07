@@ -50,6 +50,7 @@
     "escodegen": "^1.7.0",
     "esprima": "^2.7.0",
     "esprima-walk": "^0.1.0",
+    "lodash": "^4.16.4",
     "react-webpack-template": "^2.0.1-0",
     "underscore.string": "^3.2.2",
     "yeoman-generator": "^0.24.0",

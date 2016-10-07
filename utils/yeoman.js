@@ -2,8 +2,9 @@
 
 const path = require('path');
 const configUtils = require('./config');
-const _ = require('underscore.string');
 const C = require('./constants');
+
+const _ = require('lodash');
 
 // Needed directory paths
 const baseName = path.basename(process.cwd());
@@ -24,7 +25,7 @@ let getBaseDir = () => {
  * @param {String|Number} generatorVersion The version of the generator [optional]
  * @return {Object} Component settings
  */
-let getAllSettingsFromComponentName = (componentName, style, useCssModules, isPure, generatorVersion) => {
+let getAllSettingsFromComponentName = (componentName, style, isPure, generatorVersion) => {
 
   // Use css per default
   if(!style) {
@@ -33,17 +34,25 @@ let getAllSettingsFromComponentName = (componentName, style, useCssModules, isPu
 
   // Use version 3 fallback as default for projects
   if(!generatorVersion) {
-    generatorVersion = 3;
+    generatorVersion = 4;
   }
 
-  // Clean up the path and pull it to parts
-  let cleanedPaths = getCleanedPathName(componentName);
-  let componentParts = cleanedPaths.split('/');
-  let componentBaseName = _.capitalize(componentParts.pop());
-  let componentPartPath = componentParts.join('/');
+  if (componentName.indexOf('/') !== -1) {
+    throw new Error('Please specify component name correctly! For example, `peer-groups` or `PeerGroups`.');
+  }
 
-  // Get the components displayName property
-  let componentFullName = _.classify(_.replaceAll(componentName, '/', '_'));
+  let camelizedComponentName;
+  let kebabedComponentName;
+
+  if (_.includes(componentName, '-')) {
+    kebabedComponentName = componentName;
+    componentName = camelizedComponentName = _.camelCase(componentName);
+  } else {
+    kebabedComponentName = _.kebabCase(componentName);
+    componentName = camelizedComponentName = componentName;
+  }
+
+  componentName = `${componentName[0].toUpperCase()}${componentName.substr(1)}`;
 
   // Configure Styles
   let stylePaths = configUtils.getChoiceByKey('path', 'style');
@@ -55,6 +64,9 @@ let getAllSettingsFromComponentName = (componentName, style, useCssModules, isPu
   // Configure tests
   let testPath = configUtils.getChoiceByKey('path', 'test');
 
+  const pathToComponent = path.normalize(`${componentPath.path}/${kebabedComponentName}/`);
+  const styleFileName = `${kebabedComponentName}${styleSettings.suffix}`;
+
   let settings;
 
   switch(generatorVersion) {
@@ -62,51 +74,26 @@ let getAllSettingsFromComponentName = (componentName, style, useCssModules, isPu
     case 4:
       settings = {
         style: {
-          webpackPath: `./${componentBaseName.toLowerCase()}${useCssModules ? '.cssmodule' : ''}${styleSettings.suffix}`,
-          path: path.normalize(`${componentPath.path}/${componentPartPath}/`),
-          fileName: `${componentBaseName.toLowerCase()}${useCssModules ? '.cssmodule' : ''}${styleSettings.suffix}`,
-          className: getComponentStyleName(componentBaseName),
+          path: pathToComponent,
+          fileName: styleFileName,
+          className: camelizedComponentName,
           suffix: styleSettings.suffix
         },
         component: {
-          webpackPath: path.normalize(`components/${componentPartPath}/${componentBaseName}.js`),
-          path: path.normalize(`${componentPath.path}/${componentPartPath}/`),
-          fileName: `${componentBaseName}.js`,
-          className: `${componentBaseName}`,
+          path: pathToComponent,
+          styleFileName: styleFileName,
+          fileName: `${kebabedComponentName}.tsx`,
+          className: camelizedComponentName,
           classBase: isPure ? 'React.PureComponent' : 'React.Component',
-          displayName: `${componentFullName}`,
-          suffix: '.js'
+          displayName: camelizedComponentName,
+          componentName,
+          suffix: '.tsx'
         },
         test: {
-          path: path.normalize(`${testPath.path}/components/${componentPartPath}/`),
-          fileName: `${componentBaseName}Test.js`
-        }
-      };
-      break;
-
-    // Use version 3 style for the defaults and fallback
-    // @deprecated
-    case 3:
-    default:
-      settings = {
-        style: {
-          webpackPath: path.normalize(`styles/${componentPartPath}/${componentBaseName}${styleSettings.suffix}`),
-          path: path.normalize(`${stylePaths.path}/${componentPartPath}/`),
-          fileName: `${componentBaseName}${styleSettings.suffix}`,
-          className: getComponentStyleName(componentBaseName),
-          suffix: styleSettings.suffix
-        },
-        component: {
-          webpackPath: path.normalize(`components/${componentPartPath}/${componentBaseName}Component.js`),
-          path: path.normalize(`${componentPath.path}/${componentPartPath}/`),
-          fileName: `${componentBaseName}Component.js`,
-          className: `${componentBaseName}Component`,
-          displayName: `${componentFullName}Component`,
-          suffix: '.js'
-        },
-        test: {
-          path: path.normalize(`${testPath.path}/components/${componentPartPath}/`),
-          fileName: `${componentBaseName}ComponentTest.js`
+          path: pathToComponent,
+          styleFileName: styleFileName,
+          className: camelizedComponentName,
+          fileName: `${kebabedComponentName}.spec.ts`
         }
       };
       break;
@@ -204,16 +191,13 @@ let getDestinationClassName = (name, type, suffix) => {
  * Get the filename of the component template to copy.
  * @param {boolean} isStateless
  * @param {boolean} useStyles
- * @param {boolean} useCssModules
  * @return {string} The template filename including the .js suffix
  */
-let getComponentTemplateName = (isStateless, useStyles, useCssModules) => {
+let getComponentTemplateName = (isStateless, useStyles) => {
   const componentTypeFrag = isStateless ? C.COMP_TYPES.STATELESS : C.COMP_TYPES.STATEFUL;
   const styleTypeFrag = !useStyles
     ? C.STYLE_TYPES.NO_STYLES
-    : useCssModules
-      ? C.STYLE_TYPES.WITH_CSSMODULES
-      : C.STYLE_TYPES.WITH_STYLES
+    : C.STYLE_TYPES.WITH_STYLES
     ;
 
   return `${componentTypeFrag}${styleTypeFrag}.js`;

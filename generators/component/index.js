@@ -17,12 +17,6 @@ class ComponentGenerator extends Generators.Base {
     this.useStyles = false;
 
     /**
-     * Flag indicating whether the component should make use of css modules.
-     * @type {boolean}
-     */
-    this.useCssModules = false;
-
-    /**
      * Flag indicating if stateful components should extends from React.PureComponent
      * @type {boolean}
      */
@@ -61,28 +55,22 @@ class ComponentGenerator extends Generators.Base {
 
   configuring() {
     // Read the requested major version or default it to the latest stable
-    this.generatorVersion = this.config.get('generatedWithVersion') || 3;
+    this.generatorVersion = this.config.get('generatedWithVersion') || 4;
 
     if (!C.SUPPORTED_GEN_VERSIONS.some(x => x === this.generatorVersion)) {
       this.env.error('Unsupported generator version');
     }
 
     this.useStyles = !this.options.nostyle;
-    this.useCssModules = this.config.get('cssmodules') || false;
-
-    // Make sure we don't try to use template v3 with cssmodules
-    if (this.generatorVersion < 4 && this.useStyles && this.useCssModules) {
-      this.env.error('Creating components with cssmodules is only supported in generator versions 4+');
-    }
 
     // Get the filename of the component template to be copied during this run
     this.componentTemplateName =
-      utils.yeoman.getComponentTemplateName(this.options.stateless, this.useStyles, this.useCssModules);
+      utils.yeoman.getComponentTemplateName(this.options.stateless, this.useStyles);
   }
 
   writing() {
     const settings =
-      getAllSettingsFromComponentName(this.name, this.config.get('style'), this.useCssModules, this.options.pure, this.generatorVersion);
+      getAllSettingsFromComponentName(this.name, this.config.get('style'), this.options.pure, this.generatorVersion);
 
     // Create the style template. Skipped if nostyle is set as command line flag
     if(this.useStyles) {
@@ -101,11 +89,12 @@ class ComponentGenerator extends Generators.Base {
     );
 
     // Create the unit test
-    this.fs.copyTpl(
+    // TODO: implement right template for unit test
+    /*this.fs.copyTpl(
       this.templatePath(`${this.generatorVersion}/tests/Base.js`),
       this.destinationPath(settings.test.path + settings.test.fileName),
       settings
-    );
+    );*/
   }
 }
 
